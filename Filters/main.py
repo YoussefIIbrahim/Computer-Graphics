@@ -1,7 +1,7 @@
 import tkinter
 import cv2
 import PIL.Image, PIL.ImageTk
-
+from Filters import filters
 class App:
     def __init__(self, window, window_title, image_path="eye.jpg"):
         self.window = window
@@ -26,7 +26,7 @@ class App:
         self.bottomFrame.pack()
 
         # Button for inversion
-        self.btn_inversion=tkinter.Button(self.bottomFrame, text="Inversion", width=50, command=self.invert_image)
+        self.btn_inversion = tkinter.Button(self.bottomFrame, text="Inversion", width=50, command=self.invert_image)
         self.btn_inversion.grid(row=0)
 
         # Button for brightness
@@ -34,32 +34,32 @@ class App:
         self.btn_bright.grid(row=0, column=1)
 
         # Button for contrast
-        self.btn_blur1 = tkinter.Button(self.bottomFrame, text="Blur", width=50, command=self.contrast)
-        self.btn_blur1.grid(row=0)
+        self.btn_contrast = tkinter.Button(self.bottomFrame, text="Blur", width=50, command=self.contrast)
+        self.btn_contrast.grid(row=0)
 
         # Button for gamma
-        self.btn_blur2 = tkinter.Button(self.bottomFrame, text="Blur", width=50, command=self.Gamma)
-        self.btn_blur2.grid(row=0, column=1)
+        self.btn_gamma = tkinter.Button(self.bottomFrame, text="Blur", width=50, command=self.Gamma)
+        self.btn_gamma.grid(row=0, column=1)
 
         # Button for blur
-        self.btn_blur1 = tkinter.Button(self.bottomFrame, text="Blur", width=50, command=self.blur_image)
-        self.btn_blur1.grid(row=0)
+        self.btn_blur = tkinter.Button(self.bottomFrame, text="Blur", width=50, command=self.blur_image)
+        self.btn_blur.grid(row=0)
 
         # Gaussian
-        self.btn_blur2 = tkinter.Button(self.bottomFrame, text="Blur", width=50, command=self.blur_image)
-        self.btn_blur2.grid(row=0, column=1)
+        self.btn_gaussian = tkinter.Button(self.bottomFrame, text="Blur", width=50, command=self.gaussian_blur)
+        self.btn_gaussian.grid(row=0, column=1)
 
         # Sharpen
-        self.btn_blur2 = tkinter.Button(self.bottomFrame, text="Blur", width=50, command=self.blur_image)
-        self.btn_blur2.grid(row=0, column=1)
+        self.btn_sharpen = tkinter.Button(self.bottomFrame, text="Blur", width=50, command=self.sharpen)
+        self.btn_sharpen.grid(row=0, column=1)
 
         # Edge Detection
-        self.btn_blur2 = tkinter.Button(self.bottomFrame, text="Blur", width=50, command=self.blur_image)
-        self.btn_blur2.grid(row=0, column=1)
+        self.btn_edge_detection = tkinter.Button(self.bottomFrame, text="Blur", width=50, command=self.edge_detection)
+        self.btn_edge_detection.grid(row=0, column=1)
 
         # Emboss
-        self.btn_blur2 = tkinter.Button(self.bottomFrame, text="Blur", width=50, command=self.blur_image)
-        self.btn_blur2.grid(row=0, column=1)
+        self.btn_emboss = tkinter.Button(self.bottomFrame, text="Blur", width=50, command=self.emboss)
+        self.btn_emboss.grid(row=0, column=1)
 
         self.window.mainloop()
 
