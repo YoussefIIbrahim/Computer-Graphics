@@ -1,8 +1,11 @@
+import os
 import tkinter
 from tkinter import filedialog
+
+import PIL.Image
+import PIL.ImageTk
 import cv2
-import PIL.Image, PIL.ImageTk
-import os
+
 from Filters import filters
 
 
@@ -164,4 +167,4 @@ class App:
 
 
 # Create a window and pass it to the Application object
-App(tkinter.Tk(), "Tkinter and OpenCV", )
+App(tkinter.Tk(), "Tkinter and OpenCV")
