@@ -1,389 +1,97 @@
-import cv2
+from PIL import Image
 import numpy as np
-import math
-import copy
-from matplotlib import pyplot as plt
+
+
+class Filter:
+    def __init__(self, matrix, offset, anchor, divisor=None):
+        self.matrix = np.expand_dims(matrix, axis=2)
+        self.shape = matrix.shape
+        self.offset = offset
+        self.anchor = anchor
+        self.d = divisor
+        if self.d is None:
+            self.d = np.sum(matrix)
+        if self.d == 0:
+            self.d = 1
+
+
+DEFAULT_BRIGHTNESS = 25
+DEFAULT_CONTRAST = 2
+DEFAULT_GAMMA = 2
+
+DEFAULT_BLUR = Filter(np.array([[1, 1, 1], [1, 1, 1], [1, 1, 1]]), 0, (1, 1))
+DEFAULT_GAUSSIAN = Filter(np.array([[1, 2, 1], [2, 4, 2], [1, 2, 1]]), 0, (1, 1))
+DEFAULT_SHARPEN = Filter(np.array([[0, -1, 0], [-1, 4, -1], [0, -1, 0]]), 0, (1, 1))
+DEFAULT_EDGE = Filter(np.array([[-1, 0, 0], [0, 1, 0], [0, 0, 0]]), 0, (1, 1))
+DEFAULT_EMBOSS = Filter(np.array([[-1, -1, 0], [-1, 1, 1], [0, 1, 1]]), 0, (1, 1))
+
+
+def functional_filter(image, function):
+    arr = np.array(image, dtype=np.single)
+    arr = function(arr)
+    return Image.fromarray(np.array(arr, dtype=np.uint8))
 
 
 def inversion(image):
-    for x in range(len(image)):
-        for y in range(len(image[x])):
-            image[x][y][0] = 255 - image[x][y][0]
-            image[x][y][1] = 255 - image[x][y][1]
-            image[x][y][2] = 255 - image[x][y][2]
-    return image
-
-
-def truncate(value):
-
-    if value < 0:
-        value = 0
-
-    if value > 255:
-        value = 255
-
-    return value
-
-
-def brightness(image, const):
-    for x in range(len(image)):
-        for y in range(len(image[x])):
-            image[x][y][0] = truncate(image[x][y][0] + const)
-            image[x][y][1] = truncate(image[x][y][1] + const)
-            image[x][y][2] = truncate(image[x][y][2] + const)
-    return image
-
-
-def contrast(image, const):
-    new_image = np.zeros((len(image), len(image[0]), 3), dtype=np.uint8)
-    fact = (259 * (const + 255)) / (255 * (259 - const))
-    print(fact)
-    for x in range(len(image)):
-        for y in range(len(image[x])):
-            new_image[x][y][0] = truncate((fact * (image[x][y][0] - 128)) + 128)
-            new_image[x][y][1] = truncate((fact * (image[x][y][1] - 128)) + 128)
-            new_image[x][y][2] = truncate((fact * (image[x][y][2] - 128)) + 128)
-    return new_image
-
-
-def gaussianfilter(image):
-    new_image = np.zeros((len(image), len(image[0])), dtype=np.uint8)
-    filtering = np.array([[1, 2, 1], [2, 4, 2], [1, 2, 1]])
-    for x in range(len(image)):
-        for y in range(len(image[x])):
-
-            if x-1 < 0:
-
-                left = image[x + 1][y]
-                right = image[x + 1][y]
-
-                if y-1 < 0:
-                    left_down = image[x+1][y+1]
-                    right_up = image[x+1][y+1]
-                    up = image[x][y+1]
-                    down = image[x][y+1]
-                    right_down = image[x+1][y+1]
-                    left_up = image[x+1][y+1]
-
-                elif y+1 == len(image[x]):
-                    left_up = image[x+1][y-1]
-                    right_down = image[x+1][y-1]
-                    down = image[x][y-1]
-                    up = image[x][y-1]
-                    left_down = image[x+1][y-1]
-                    right_up = image[x+1][y-1]
-
-                else:
-                    left_up = image[x+1][y+1]
-                    left_down = image[x+1][y-1]
-                    up = image[x][y-1]
-                    down = image[x][y+1]
-                    right_up = image[x+1][y-1]
-                    right_down = image[x+1][y+1]
-
-            elif x+1 == len(image):
-
-                right = image[x-1][y]
-                left = image[x-1][y]
-
-                if y-1 < 0:
-                    right_down = image[x-1][y+1]
-                    left_up = image[x-1][y+1]
-                    up = image[x][y+1]
-                    down = image[x][y+1]
-                    right_up = image[x-1][y+1]
-                    left_down = image[x-1][y+1]
-
-                elif y+1 == len(image[x]):
-                    left_down = image[x-1][y-1]
-                    right_up = image[x-1][y-1]
-                    down = image[x][y-1]
-                    up = image[x][y-1]
-                    left_up = image[x-1][y-1]
-                    right_down = image[x-1][y-1]
-
-                else:
-                    up = image[x][y - 1]
-                    down = image[x][y + 1]
-                    left_up = image[x-1][y-1]
-                    left_down = image[x-1][y+1]
-                    right_up = image[x-1][y+1]
-                    right_down = image[x-1][y-1]
-
-            else:
-                left = image[x - 1][y]
-                right = image[x+1][y]
-
-                if y-1 < 0:
-                    up = image[x][y+1]
-                    down = image[x][y+1]
-                    left_up = image[x+1][y+1] # =right_down
-                    right_up = image[x-1][y+1] # =left_down
-                    left_down = image[x-1][y+1]
-                    right_down = image[x+1][y+1]
-
-                elif y+1 == len(image[x]):
-                    down = image[x][y-1]
-                    up = image[x][y-1]
-                    left_down = image[x+1][y-1] # =right_up
-                    right_down = image[x-1][y-1] # =left_up
-                    left_up = image[x-1][y-1]
-                    right_up = image[x+1][y-1]
-                else:
-                    up = image[x][y-1]
-                    down = image[x][y+1]
-                    left_up = image[x-1][y-1]
-                    left_down = image[x-1][y+1]
-                    right_up = image[x+1][y-1]
-                    right_down = image[x+1][y+1]
-
-            elems = np.array([[left_up, up, right_up], [left, image[x][y], right], [left_down, down, right_down]])
-            new_image[x][y] = (sum(sum(filtering * elems))/16)
-    return new_image
-
-
-def sharpeningfilter(image):
-    new_image = np.zeros((len(image), len(image[0])), dtype=np.uint8)
-    filtering = np.array([[0, -1, 0], [-1, 4, -1], [0, -1, 0]])
-    for x in range(len(image)):
-        for y in range(len(image[x])):
-
-            if x-1 < 0:
-
-                left = image[x + 1][y]
-                right = image[x + 1][y]
-
-                if y-1 < 0:
-                    left_down = image[x+1][y+1]
-                    right_up = image[x+1][y+1]
-                    up = image[x][y+1]
-                    down = image[x][y+1]
-                    right_down = image[x+1][y+1]
-                    left_up = image[x+1][y+1]
-
-                elif y+1 == len(image[x]):
-                    left_up = image[x+1][y-1]
-                    right_down = image[x+1][y-1]
-                    down = image[x][y-1]
-                    up = image[x][y-1]
-                    left_down = image[x+1][y-1]
-                    right_up = image[x+1][y-1]
-
-                else:
-                    left_up = image[x+1][y+1]
-                    left_down = image[x+1][y-1]
-                    up = image[x][y-1]
-                    down = image[x][y+1]
-                    right_up = image[x+1][y-1]
-                    right_down = image[x+1][y+1]
-
-            elif x+1 == len(image):
-
-                right = image[x-1][y]
-                left = image[x-1][y]
-
-                if y-1 < 0:
-                    right_down = image[x-1][y+1]
-                    left_up = image[x-1][y+1]
-                    up = image[x][y+1]
-                    down = image[x][y+1]
-                    right_up = image[x-1][y+1]
-                    left_down = image[x-1][y+1]
-
-                elif y+1 == len(image[x]):
-                    left_down = image[x-1][y-1]
-                    right_up = image[x-1][y-1]
-                    down = image[x][y-1]
-                    up = image[x][y-1]
-                    left_up = image[x-1][y-1]
-                    right_down = image[x-1][y-1]
-
-                else:
-                    up = image[x][y - 1]
-                    down = image[x][y + 1]
-                    left_up = image[x-1][y-1]
-                    left_down = image[x-1][y+1]
-                    right_up = image[x-1][y+1]
-                    right_down = image[x-1][y-1]
-
-            else:
-                left = image[x - 1][y]
-                right = image[x+1][y]
-
-                if y-1 < 0:
-                    up = image[x][y+1]
-                    down = image[x][y+1]
-                    left_up = image[x+1][y+1] # =right_down
-                    right_up = image[x-1][y+1] # =left_down
-                    left_down = image[x-1][y+1]
-                    right_down = image[x+1][y+1]
-
-                elif y+1 == len(image[x]):
-                    down = image[x][y-1]
-                    up = image[x][y-1]
-                    left_down = image[x+1][y-1] # =right_up
-                    right_down = image[x-1][y-1] # =left_up
-                    left_up = image[x-1][y-1]
-                    right_up = image[x+1][y-1]
-                else:
-                    up = image[x][y-1]
-                    down = image[x][y+1]
-                    left_up = image[x-1][y-1]
-                    left_down = image[x-1][y+1]
-                    right_up = image[x+1][y-1]
-                    right_down = image[x+1][y+1]
-
-            elems = np.array([[left_up, up, right_up], [left, image[x][y], right], [left_down, down, right_down]])
-            new_image[x][y] = image[x][y] + (sum(sum(filtering * elems))/16)
-    return new_image
-
-
-def sobelfilter(image):
-
-    gx_filtering = np.array([[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]])
-    gy_filtering = np.array([[-1, -2, -1], [0, 0, 0], [1, 2, 1]])
-    blank_image = np.zeros((len(image), len(image[0])), dtype=np.uint8)
-
-    for x in range(len(image)):
-        for y in range(len(image[x])):
-
-            if x-1 < 0:
-
-                left = image[x + 1][y]
-                right = image[x + 1][y]
-
-                if y-1 < 0:
-                    left_down = image[x+1][y+1]
-                    right_up = image[x+1][y+1]
-                    up = image[x][y+1]
-                    down = image[x][y+1]
-                    right_down = image[x+1][y+1]
-                    left_up = image[x+1][y+1]
-
-                elif y+1 == len(image[x]):
-                    left_up = image[x+1][y-1]
-                    right_down = image[x+1][y-1]
-                    down = image[x][y-1]
-                    up = image[x][y-1]
-                    left_down = image[x+1][y-1]
-                    right_up = image[x+1][y-1]
-
-                else:
-                    left_up = image[x+1][y+1]
-                    left_down = image[x+1][y-1]
-                    up = image[x][y-1]
-                    down = image[x][y+1]
-                    right_up = image[x+1][y-1]
-                    right_down = image[x+1][y+1]
-
-            elif x+1 == len(image):
-
-                right = image[x-1][y]
-                left = image[x-1][y]
-
-                if y-1 < 0:
-                    right_down = image[x-1][y+1]
-                    left_up = image[x-1][y+1]
-                    up = image[x][y+1]
-                    down = image[x][y+1]
-                    right_up = image[x-1][y+1]
-                    left_down = image[x-1][y+1]
-
-                elif y+1 == len(image[x]):
-                    left_down = image[x-1][y-1]
-                    right_up = image[x-1][y-1]
-                    down = image[x][y-1]
-                    up = image[x][y-1]
-                    left_up = image[x-1][y-1]
-                    right_down = image[x-1][y-1]
-
-                else:
-                    up = image[x][y - 1]
-                    down = image[x][y + 1]
-                    left_up = image[x-1][y-1]
-                    left_down = image[x-1][y+1]
-                    right_up = image[x-1][y+1]
-                    right_down = image[x-1][y-1]
-
-            else:
-                left = image[x - 1][y]
-                right = image[x+1][y]
-
-                if y-1 < 0:
-                    up = image[x][y+1]
-                    down = image[x][y+1]
-                    left_up = image[x+1][y+1] # =right_down
-                    right_up = image[x-1][y+1] # =left_down
-                    left_down = image[x-1][y+1]
-                    right_down = image[x+1][y+1]
-
-                elif y+1 == len(image[x]):
-                    down = image[x][y-1]
-                    up = image[x][y-1]
-                    left_down = image[x+1][y-1] # =right_up
-                    right_down = image[x-1][y-1] # =left_up
-                    left_up = image[x-1][y-1]
-                    right_up = image[x+1][y-1]
-                else:
-                    up = image[x][y-1]
-                    down = image[x][y+1]
-                    left_up = image[x-1][y-1]
-                    left_down = image[x-1][y+1]
-                    right_up = image[x+1][y-1]
-                    right_down = image[x+1][y+1]
-
-            elems = np.array([[left_up, up, right_up], [left, image[x][y], right], [left_down, down, right_down]])
-            blank_image[x][y] = math.sqrt(
-                int(np.sum(elems * gx_filtering)) ** 2 + int(np.sum(elems * gy_filtering)) ** 2)
-
-    return blank_image
-
-
-def robertscrossfilter(image):
-    gx_filtering = np.array([[1, 0], [0, -1]])
-    gy_filtering = np.array([[0, 1], [-1, 0]])
-    new_image = np.zeros((len(image), len(image[0])), dtype=np.uint8)
-    for x in range(len(image)):
-        for y in range(len(image[x])):
-
-            if x + 1 == len(image):
-
-                right = image[x - 1][y]
-
-                if y - 1 < 0:
-                    right_down = image[x][y]
-                    down = image[x][y + 1]
-
-                elif y + 1 == len(image[x]):
-                    down = image[x][y - 1]
-                    right_down = image[x - 1][y - 1]
-
-                else:
-                    down = image[x][y + 1]
-                    right_down = image[x - 1][y - 1]
-
-            else:
-
-                right = image[x + 1][y]
-
-                if y + 1 == len(image[x]):
-
-                    down = image[x][y-1]
-
-                    if x + 1 == len(image):
-                        right_down = image[x][y]
-
-                    else:
-                        right_down = image[x-1][y-1]
-
-                else:
-                    down = image[x][y + 1]
-                    right_down = image[x + 1][y + 1]
-
-            elems = np.array([[image[x][y], right], [down, right_down]])
-
-            gx = (sum(sum(gx_filtering * elems)))
-            gy = (sum(sum(gy_filtering * elems)))
-            new_image[x][y] = math.sqrt(gx ** 2 + gy ** 2)
-
-    return new_image
+    return functional_filter(image, lambda x: 255 - x)
+
+
+def brightness_correction(image):
+    return functional_filter(image, lambda x: np.clip(x + DEFAULT_BRIGHTNESS, 0, 255))
+
+
+def contrast_enhancement(image):
+    return functional_filter(image, lambda x: np.clip(DEFAULT_CONTRAST * (x - 64), 0, 255))
+
+
+def gamma_correction(image):
+    return functional_filter(image, lambda x: (x / 255) ** DEFAULT_GAMMA * 255)
+
+
+def convolution_filter(image, filter):
+    arr = np.array(image)
+    padded = np.zeros(
+        [sum(x) for x in zip(arr.shape, (filter.shape[0], filter.shape[1], 0), (filter.shape[0], filter.shape[1], 0))])
+    padded[filter.shape[0]:-filter.shape[0], filter.shape[1]:-filter.shape[1], :] = arr
+    padded[:filter.shape[0], :, :] = padded[filter.shape[0], :, :]
+    padded[-filter.shape[0]:, :, :] = padded[-filter.shape[0], :, :]
+    for i in range(filter.shape[1]):
+        padded[:, i, :] = padded[:, filter.shape[1], :]
+        padded[:, -i, :] = padded[:, -filter.shape[1], :]
+
+    output = np.zeros(arr.shape)
+    for i in range(output.shape[0]):
+        for j in range(output.shape[1]):
+            output[i, j] = filter.offset + sum(sum(filter.matrix * padded[i + filter.shape[0] - filter.anchor[0]:i + 2 *
+                                                                                                                 filter.shape[
+                                                                                                                     0] -
+                                                                                                                 filter.anchor[
+                                                                                                                     0],
+                                                                   j + filter.shape[1] - filter.anchor[1]:j + 2 *
+                                                                                                          filter.shape[
+                                                                                                              1] -
+                                                                                                          filter.anchor[
+                                                                                                              1],
+                                                                   :])) / filter.d
+    output = np.clip(output, 0, 255)
+    return Image.fromarray(np.array(output, dtype=np.uint8))
+
+
+def blur(image):
+    return convolution_filter(image, DEFAULT_BLUR)
+
+
+def gaussian(image):
+    return convolution_filter(image, DEFAULT_GAUSSIAN)
+
+
+def sharpen(image):
+    return convolution_filter(image, DEFAULT_SHARPEN)
+
+
+def edge(image):
+    return convolution_filter(image, DEFAULT_EDGE)
+
+
+def emboss(image):
+    return convolution_filter(image, DEFAULT_EMBOSS)

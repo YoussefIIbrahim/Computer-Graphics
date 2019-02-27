@@ -1,13 +1,25 @@
 import tkinter
+from tkinter import filedialog
 import cv2
 import PIL.Image, PIL.ImageTk
+import os
 from Filters import filters
 
 
 class App:
-    def __init__(self, window, window_title, image_path="eye.jpg"):
+    def __init__(self, window, window_title, image_path="init.png"):
         self.window = window
         self.window.title(window_title)
+        self.path = None
+        self.image = None
+        self.first_filter = 0
+        menu = tkinter.Menu()
+        self.window.config(menu=menu)
+
+        file = tkinter.Menu(menu, tearoff=0)
+        file.add_command(label='Open Image...', command=self.open_image)
+        file.add_command(label='Reset', command=self.reset_image)
+        menu.add_cascade(label="File", menu=file)
 
         self.topFrame = tkinter.Frame()
         self.topFrame.pack()
@@ -19,7 +31,7 @@ class App:
 
         # Create a canvas that can fit the above image
         self.canvasOne = tkinter.Canvas(self.topFrame, width = self.width, height = self.height)
-        self.canvasOne.grid(row=0, column=0)
+        self.canvasOne.pack(expand=True, side=tkinter.LEFT)
 
         # Use PIL (Pillow) to convert the NumPy ndarray to a PhotoImage
         self.photoOne = PIL.ImageTk.PhotoImage(image = PIL.Image.fromarray(self.cv_img))
@@ -29,7 +41,7 @@ class App:
 
         # Create a canvas that can fit the edited image
         self.canvas = tkinter.Canvas(self.topFrame, width=self.width, height=self.height)
-        self.canvas.grid(row=0, column=1)
+        self.canvas.pack(expand=True, side=tkinter.LEFT)
 
         # Use PIL (Pillow) to convert the NumPy ndarray to a PhotoImage
         self.photo = PIL.ImageTk.PhotoImage(image=PIL.Image.fromarray(self.cv_img))
@@ -41,7 +53,7 @@ class App:
         self.bottomFrame.pack()
 
         # Button for inversion
-        self.btn_inversion = tkinter.Button(self.bottomFrame, text="Inversion", width=50, command=self.invert_image)
+        self.btn_inversion = tkinter.Button(self.bottomFrame, text="Inversion", width=50, command= self.invert_image)
         self.btn_inversion.grid(row=0, column=0)
 
         # Button for brightness
@@ -78,58 +90,76 @@ class App:
 
         self.window.mainloop()
 
+    # Reset Image
+    def reset_image(self):
+        self.image = PIL.Image.open(self.path)
+        self.canvas.create_image(0, 0, image=self.photoOne, anchor=tkinter.NW)
+
+    # Open File
+    def open_image(self):
+        self.path = filedialog.askopenfilename(initialdir=os.getcwd(), title='Open image',
+                                             filetypes=[('Image files', ('.png', '.jpg', '.bmp'))])
+        self.image = PIL.Image.open(self.path)
+        self.width, self.height = self.image.size
+        self.photo = PIL.ImageTk.PhotoImage(self.image)
+        self.photoOne = PIL.ImageTk.PhotoImage(self.image)
+        self.canvasOne.create_image(0, 0, image=self.photoOne, anchor=tkinter.NW)
+        self.canvasOne.config(width=self.width, height=self.height)
+        self.canvas.create_image(0, 0, image=self.photo, anchor=tkinter.NW)
+        self.canvas.config(width=self.width, height=self.height)
+
     # Callback for the "Blur" button
     def invert_image(self):
-        self.cv_img = cv2.blur(self.cv_img, (3, 3))
-        self.photo = PIL.ImageTk.PhotoImage(image = PIL.Image.fromarray(self.cv_img))
+        self.image = filters.inversion(self.image)
+        self.photo = PIL.ImageTk.PhotoImage(self.image)
         self.canvas.create_image(0, 0, image=self.photo, anchor=tkinter.NW)
 
     # Callback for the "Blur" button
     def brightness(self):
-        self.cv_img = cv2.blur(self.cv_img, (3, 3))
-        self.photo = PIL.ImageTk.PhotoImage(image = PIL.Image.fromarray(self.cv_img))
+        self.image = filters.brightness_correction(self.image)
+        self.photo = PIL.ImageTk.PhotoImage(self.image)
         self.canvas.create_image(0, 0, image=self.photo, anchor=tkinter.NW)
 
     # Callback for the "Blur" button
     def contrast(self):
-        self.cv_img = cv2.blur(self.cv_img, (3, 3))
-        self.photo = PIL.ImageTk.PhotoImage(image = PIL.Image.fromarray(self.cv_img))
+        self.image = filters.contrast_enhancement(self.image)
+        self.photo = PIL.ImageTk.PhotoImage(self.image)
         self.canvas.create_image(0, 0, image=self.photo, anchor=tkinter.NW)
 
     # Callback for the "Blur" button
     def blur_image(self):
-        self.cv_img = cv2.blur(self.cv_img, (3, 3))
-        self.photo = PIL.ImageTk.PhotoImage(image = PIL.Image.fromarray(self.cv_img))
+        self.image = filters.blur(self.image)
+        self.photo = PIL.ImageTk.PhotoImage(self.image)
         self.canvas.create_image(0, 0, image=self.photo, anchor=tkinter.NW)
 
     # Callback for the "Blur" button
     def gamma(self):
-        self.cv_img = cv2.blur(self.cv_img, (3, 3))
-        self.photo = PIL.ImageTk.PhotoImage(image = PIL.Image.fromarray(self.cv_img))
+        self.image = filters.gamma_correction(self.image)
+        self.photo = PIL.ImageTk.PhotoImage(self.image)
         self.canvas.create_image(0, 0, image=self.photo, anchor=tkinter.NW)
 
     # Callback for the "Blur" button
     def gaussian_blur(self):
-        self.cv_img = cv2.blur(self.cv_img, (3, 3))
-        self.photo = PIL.ImageTk.PhotoImage(image = PIL.Image.fromarray(self.cv_img))
+        self.image = filters.gaussian(self.image)
+        self.photo = PIL.ImageTk.PhotoImage(self.image)
         self.canvas.create_image(0, 0, image=self.photo, anchor=tkinter.NW)
 
     # Callback for the "Blur" button
     def sharpen(self):
-        self.cv_img = cv2.blur(self.cv_img, (3, 3))
-        self.photo = PIL.ImageTk.PhotoImage(image = PIL.Image.fromarray(self.cv_img))
+        self.image = filters.sharpen(self.image)
+        self.photo = PIL.ImageTk.PhotoImage(self.image)
         self.canvas.create_image(0, 0, image=self.photo, anchor=tkinter.NW)
 
     # Callback for the "Blur" button
     def edge_detection(self):
-        self.cv_img = cv2.blur(self.cv_img, (3, 3))
-        self.photo = PIL.ImageTk.PhotoImage(image = PIL.Image.fromarray(self.cv_img))
+        self.image = filters.edge(self.image)
+        self.photo = PIL.ImageTk.PhotoImage(self.image)
         self.canvas.create_image(0, 0, image=self.photo, anchor=tkinter.NW)
 
     # Callback for the "Blur" button
     def emboss(self):
-        self.cv_img = cv2.blur(self.cv_img, (3, 3))
-        self.photo = PIL.ImageTk.PhotoImage(image = PIL.Image.fromarray(self.cv_img))
+        self.image = filters.emboss(self.image)
+        self.photo = PIL.ImageTk.PhotoImage(self.image)
         self.canvas.create_image(0, 0, image=self.photo, anchor=tkinter.NW)
 
 
