@@ -1,5 +1,4 @@
 import tkinter
-from tkinter import messagebox
 
 import PIL.Image
 import PIL.ImageTk
@@ -16,9 +15,7 @@ class App:
         self.path = None
         self.image = None
         self.Xes = []
-        self.Yes = []
         self.eventX = []
-        self.eventY = []
         self.first_filter = 0
         self.dragged = 0
         self.toleranceY = [-0.955, 321.854]
@@ -112,8 +109,8 @@ class App:
         # Position: convert from top-left anchor to center anchor
         self.bottom_canvas.create_image(fig_x + figure_w / 2, fig_y + figure_h / 2 + 10, image=photo)
         for i in range(len(self.eventX)):
-            self.bottom_canvas.create_oval((self.eventX[i]) - 5, (self.eventY[i]) - 5, (self.eventX[i]) + 5,
-                                           (self.eventY[i]) + 5,
+            self.bottom_canvas.create_oval((self.eventX[i][0]) - 5, (self.eventX[i][1]) - 5, (self.eventX[i][0]) + 5,
+                                           (self.eventX[i][1]) + 5,
                                            outline="#f11", fill="#1f1", width=2, tags="DnD")
         # Unfortunately, there's no accessor for the pointer to the native renderer
         tkagg.blit(photo, figure_canvas_agg.get_renderer()._renderer, colormode=2)
@@ -128,8 +125,8 @@ class App:
         y = int(((event.y) * self.toleranceY[0]) + self.toleranceY[1])
 
         if 0 <= x <= 255 and 0 <= y <= 255:
-            self.eventX.append(event.x)
-            self.eventY.append(event.y)
+            self.eventX.append([event.x, event.y])
+            # self.eventY.append(event.y)
             self.Xes.append([x, y])
             self.fig_photo = self.draw_figure([i[0] for i in self.Xes], [i[1] for i in self.Xes])
 
@@ -140,10 +137,9 @@ class App:
         event.widget.bind("<Motion>", self.motion)
         x_mod = int((event.x * self.toleranceX[0]) + self.toleranceX[1])
         y_mod = int((event.y * self.toleranceY[0]) + self.toleranceY[1])
-        print(self.Xes)
-        print(self.Yes)
-        print(self.eventX)
-        print(self.eventY)
+        # print(self.Xes)
+        # print(self.eventX)
+        # print(self.eventY)
         self.RemoveXesYes(x_mod, y_mod)
 
 
@@ -158,8 +154,7 @@ class App:
             got = event.widget.coords(tkinter.CURRENT, x - 10, y - 10, x + 10, y + 10)
             # self.Xes.append(x)
             # self.Yes.append(y)
-            # self.Xes.sort()
-            # self.Yes.sort()
+            self.Xes.sort()
             # self.fig_photo = self.draw_figure(self.Xes, self.Yes)
 
     def leave(self, event):
@@ -216,26 +211,34 @@ class App:
                     x_event = x_event + i
                     y_event = y_event + k
 
+        xes = [i[0] for i in self.Xes]
+        yes = [i[1] for i in self.Xes]
         for i in range(len(self.Xes)):
-            pass
+            for j in range(-10, 10):
+                if x_remove + j in xes:
+                    for k in range(-10, 10):
+                        if y_remove + k in yes:
+                            if y_remove + k == yes[xes.index(x_remove + j)]:
+                                x_remove = x_remove + j
+                                y_remove = y_remove + k
+
         # Handling margin error for saved points
-        for i in range(-10, 10):
-            for k in range(-10, 10):
-                if x_remove + i in self.Xes and y_remove + k in self.Yes:
-                    x_remove = x_remove + i
-                    y_remove = y_remove + k
+        # for i in range(-10, 10):
+        #     for k in range(-10, 10):
+        #         if x_remove + i in self.Xes and y_remove + k in self.Yes:
+        #             x_remove = x_remove + i
+        #             y_remove = y_remove + k
 
         # Handling not finding the points
-        if x_remove not in self.Xes or y_remove not in self.Yes or x_event not in self.eventX or y_event not in self.eventY:
-
-            messagebox.showinfo("Error", "Error retrieving this point from set of points. Please try again.")
-        else:
+        if [x_remove, y_remove] not in self.Xes or x_event not in self.eventX or y_event not in self.eventY:
             print("Yes remove", y_event, self.eventY)
             print("Yes remove", x_event, self.eventX)
-            print("Yes remove", y_remove, self.Yes)
-            print("Yes remove", x_remove, self.Xes)
-            self.Xes.remove(x_remove)
-            self.Yes.remove(y_remove)
+            print("Yes remove", [x_remove, y_remove], self.Xes)
+            # messagebox.showinfo("Error", "Error retrieving this point from set of points. Please try again.")
+        else:
+
+            self.Xes.remove([x_remove, y_remove])
+            # self.Yes.remove(y_remove)
             self.eventX.remove(x_event)
             self.eventY.remove(y_event)
 
@@ -243,10 +246,8 @@ class App:
 
         self.eventX.append(int((x_mod - self.toleranceX[1]) / self.toleranceX[0]))
         self.eventY.append(int((y_mod - self.toleranceY[1]) / self.toleranceY[0]))
-        self.Xes.append(x_mod)
-        self.Yes.append(y_mod)
-
+        self.Xes.append([x_mod, y_mod])
+        # self.Yes.append(y_mod)
         self.Xes.sort()
-        self.Yes.sort()
 
 App(tkinter.Tk(), "Tkinter and OpenCV")
