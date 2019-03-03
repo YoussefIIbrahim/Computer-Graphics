@@ -92,7 +92,6 @@ class SecondApp:
 
     def pointer(self, event):
         print("Pointer ", event.x, event.y)
-
     # Reset Image
     def reset_image(self):
         self.image = PIL.Image.open(self.path)
