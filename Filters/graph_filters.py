@@ -1,4 +1,6 @@
+import os
 import tkinter
+from tkinter import filedialog
 from tkinter import messagebox
 
 import PIL.Image
@@ -6,15 +8,15 @@ import PIL.ImageTk
 import cv2
 import matplotlib.backends.tkagg as tkagg
 import matplotlib.pyplot as pypl
+import numpy as np
 from matplotlib.backends.backend_agg import FigureCanvasAgg
 
 
-class App:
-    def __init__(self, window, window_title, image_path="init.png"):
+class SecondApp:
+    def __init__(self, window, window_title, image_source, image_path="init.png"):
         self.window = window
         self.window.title(window_title)
-        self.path = None
-        self.image = None
+        self.image = image_source
         self.Xes = []
         self.eventX = []
         self.first_filter = 0
@@ -25,10 +27,11 @@ class App:
         self.window.config(menu=menu)
 
         file = tkinter.Menu(menu, tearoff=0)
-        file.add_command(label='Open Image...', command=self.draw_figure)
+        file.add_command(label='Open Image...', command=self.open_image)
+        file.add_command(label='Reset', command=self.reset_image)
         menu.add_cascade(label="File", menu=file)
 
-        self.topFrame = tkinter.Frame()
+        self.topFrame = tkinter.Frame(self.window)
         self.topFrame.pack()
 
         # Load an image using OpenCV
@@ -56,13 +59,14 @@ class App:
         # Add a PhotoImage to the Canvas
         self.canvas.create_image(0, 0, image=self.photo, anchor=tkinter.NW)
 
-        self.bottomFrame = tkinter.Frame()
+        self.bottomFrame = tkinter.Frame(self.window)
         self.bottomFrame.pack()
 
         # Create a canvas
         w, h = 255 * 3, 255 * 1.5
         self.bottom_canvas = tkinter.Canvas(self.bottomFrame, relief=tkinter.RIDGE, width=w, height=h)
         self.bottom_canvas.bind("<Double-Button-1>", self.reconstruct_line)
+        self.bottom_canvas.bind("<Button-2>", self.pointer)
         self.bottom_canvas.configure(background='black')
         self.bottom_canvas.tag_bind("DnD", "<ButtonPress-1>", self.down)
         self.bottom_canvas.tag_bind("DnD", "<ButtonRelease-1>", self.chkup)
@@ -72,8 +76,7 @@ class App:
 
         # Generate some example data
         self.Xes = [[0, 0], [255, 255]]
-        self.Yes = [0, 255]
-
+        self.eventX = [[123, 337], [663, 69]]
         # # Create the figure we desire to add to an existing canvas
         # self.fig = pypl.figure(figsize=(8, 4), dpi=100)
         # self.ax = self.fig.add_subplot(1, 1, 1)
@@ -86,6 +89,27 @@ class App:
         yes = [i[1] for i in self.Xes]
         self.fig_photo = self.draw_figure(xes, yes)
         self.window.mainloop()
+
+    def pointer(self, event):
+        print("Pointer ", event.x, event.y)
+
+    # Reset Image
+    def reset_image(self):
+        self.image = PIL.Image.open(self.path)
+        self.canvas.create_image(0, 0, image=self.photoOne, anchor=tkinter.NW)
+
+    # Open File
+    def open_image(self):
+        self.path = filedialog.askopenfilename(initialdir=os.getcwd(), title='Open image',
+                                               filetypes=[('Image files', ('.png', '.jpg', '.bmp'))])
+        self.image = PIL.Image.open(self.path)
+        self.width, self.height = self.image.size
+        self.photo = PIL.ImageTk.PhotoImage(self.image)
+        self.photoOne = PIL.ImageTk.PhotoImage(self.image)
+        self.canvasOne.create_image(0, 0, image=self.photoOne, anchor=tkinter.NW)
+        self.canvasOne.config(width=self.width, height=self.height)
+        self.canvas.create_image(0, 0, image=self.photo, anchor=tkinter.NW)
+        self.canvas.config(width=self.width, height=self.height)
 
     # Draw the graoh using matplotlib
     def draw_figure(self, x_values, y_values):
@@ -132,6 +156,7 @@ class App:
             # self.eventY.append(event.y)
             self.Xes.append([x, y])
             self.Xes.sort()
+            self.updateImage()
             self.fig_photo = self.draw_figure([i[0] for i in self.Xes], [i[1] for i in self.Xes])
 
     # Drag points
@@ -159,6 +184,7 @@ class App:
             # self.Xes.append(x)
             # self.Yes.append(y)
             self.Xes.sort()
+            self.updateImage()
             # self.fig_photo = self.draw_figure(self.Xes, self.Yes)
 
     def leave(self, event):
@@ -260,5 +286,27 @@ class App:
         self.Xes.append([x_mod, y_mod])
         # self.Yes.append(y_mod)
         self.Xes.sort()
+        self.updateImage()
 
-App(tkinter.Tk(), "Tkinter and OpenCV")
+    def updateImage(self):
+
+        image = np.array(self.image)
+        for i in range(len(image)):
+            for j in range(len(image[i])):
+                for l in range(len(image[i][j])):
+                    for k in range(len(self.Xes)):
+                        # print(self.Xes[k][0])
+                        # print(image[i][j])
+                        if image[i][j][l] == self.Xes[k][0]:
+                            image[i][j][l] = self.Xes[k][1]
+
+        imageO = PIL.Image.fromarray(np.array(image, dtype=np.uint8))
+
+        self.photo = PIL.ImageTk.PhotoImage(imageO)
+        self.canvasOne.config(width=self.width, height=self.height)
+        self.canvas.create_image(0, 0, image=self.photo, anchor=tkinter.NW)
+        self.canvas.config(width=self.width, height=self.height)
+
+        print("___________________________________")
+
+# SecondApp(tkinter.Toplevel(), "Tkinter")

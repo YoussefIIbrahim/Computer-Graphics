@@ -7,20 +7,22 @@ import PIL.ImageTk
 import cv2
 
 from Filters import filters
+from Filters import graph_filters
 
 
 class App:
-    def __init__(self, window, window_title, image_path="init.png"):
-        self.window = window
-        self.window.title(window_title)
+    def __init__(self, root, root_title, image_path="init.png"):
+        self.root = root
+        self.root.title(root_title)
         self.path = None
         self.image = None
         self.first_filter = 0
         menu = tkinter.Menu()
-        self.window.config(menu=menu)
+        self.root.config(menu=menu)
 
         file = tkinter.Menu(menu, tearoff=0)
         file.add_command(label='Open Image...', command=self.open_image)
+        file.add_command(label='Open Graph', command=self.open_graph)
         file.add_command(label='Reset', command=self.reset_image)
         menu.add_cascade(label="File", menu=file)
 
@@ -91,12 +93,17 @@ class App:
         self.btn_emboss = tkinter.Button(self.bottomFrame, text="Emboss 3x3", width=50, command=self.emboss)
         self.btn_emboss.grid(row=2, column=2)
 
-        self.window.mainloop()
+        self.root.mainloop()
 
     # Reset Image
     def reset_image(self):
         self.image = PIL.Image.open(self.path)
         self.canvas.create_image(0, 0, image=self.photoOne, anchor=tkinter.NW)
+        # graph_filters.SecondApp(tkinter.Toplevel(), "Tkinter", self.path)
+
+    # Reset Image
+    def open_graph(self):
+        graph_filters.SecondApp(tkinter.Toplevel(), "Tkinter", self.image, self.path)
 
     # Open File
     def open_image(self):
@@ -166,5 +173,5 @@ class App:
         self.canvas.create_image(0, 0, image=self.photo, anchor=tkinter.NW)
 
 
-# Create a window and pass it to the Application object
+# Create a root and pass it to the Application object
 App(tkinter.Tk(), "Tkinter and OpenCV")
