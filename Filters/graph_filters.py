@@ -16,7 +16,12 @@ class App:
         self.image = None
         self.Xes = []
         self.Yes = []
+        self.eventX = []
+        self.eventY = []
         self.first_filter = 0
+        self.dragged = 0
+        self.toleranceY = [-0.955, 321.854]
+        self.toleranceX = [0.47398, -58.773]
         menu = tkinter.Menu()
         self.window.config(menu=menu)
 
@@ -56,9 +61,14 @@ class App:
         self.bottomFrame.pack()
 
         # Create a canvas
-        w, h = 800, 400
-        self.bottom_canvas = tkinter.Canvas(self.bottomFrame, width=w, height=h)
-        self.bottom_canvas.bind("<Button-1>", self.reconstruct_line)
+        w, h = 255 * 3, 255 * 1.5
+        self.bottom_canvas = tkinter.Canvas(self.bottomFrame, relief=tkinter.RIDGE, width=w, height=h)
+        self.bottom_canvas.bind("<Button-2>", self.reconstruct_line)
+        self.bottom_canvas.configure(background='black')
+        self.bottom_canvas.tag_bind("DnD", "<ButtonPress-1>", self.down)
+        self.bottom_canvas.tag_bind("DnD", "<ButtonRelease-1>", self.chkup)
+        self.bottom_canvas.tag_bind("DnD", "<Enter>", self.enter)
+        self.bottom_canvas.tag_bind("DnD", "<Leave>", self.leave)
         self.bottom_canvas.pack()
 
         # Generate some example data
@@ -82,12 +92,10 @@ class App:
         fig = pypl.figure(figsize=(2.55 * 3, 2.55 * 1.5), dpi=100)
         ax = fig.add_subplot(1, 1, 1)
         ax.clear()
-        print("Here")
         ax.plot(x_values, y_values)
-        print(id(ax))
 
         # Keep this handle alive, or else figure will disappear
-        fig_x, fig_y = 5, 5
+        fig_x, fig_y = 0, 0
 
         # fig.canvas.draw()
 
@@ -98,11 +106,11 @@ class App:
         photo = tkinter.PhotoImage(master=self.bottom_canvas, width=figure_w, height=figure_h)
 
         # Position: convert from top-left anchor to center anchor
-        self.bottom_canvas.create_image(fig_x + figure_w / 2, fig_y + figure_h / 2, image=photo)
-        for i in range(len(self.Xes)):
-            self.bottom_canvas.create_oval((self.Xes[i]) - 0.8, (self.Yes[i]) - 0.8, (self.Xes[i]) + 0.8,
-                                           (self.Yes[i]) + 0.8,
-                                           outline="#f11", fill="#1f1", width=2)
+        self.bottom_canvas.create_image(fig_x + figure_w / 2, fig_y + figure_h / 2 + 10, image=photo)
+        for i in range(len(self.eventX)):
+            self.bottom_canvas.create_oval((self.eventX[i]) - 5, (self.eventY[i]) - 5, (self.eventX[i]) + 5,
+                                           (self.eventY[i]) + 5,
+                                           outline="#f11", fill="#1f1", width=2, tags="DnD")
         # Unfortunately, there's no accessor for the pointer to the native renderer
         tkagg.blit(photo, figure_canvas_agg.get_renderer()._renderer, colormode=2)
 
@@ -112,16 +120,60 @@ class App:
 
     # Reconstruct the drawn line on marker drop
     def reconstruct_line(self, event):
-        self.bottom_canvas.create_oval((event.x) - 0.8, (event.y) - 0.8, (event.x) + 0.8, (event.y) + 0.8,
-                                       outline="#f11",
-                                       fill="#1f1", width=2)
-        self.Xes.append(event.x / 3)
-        self.Yes.append(event.y / 1.5)
-        self.Xes.sort()
-        self.Yes.sort()
-        print(self.Xes, self.Yes)
-        self.fig_photo = self.draw_figure(self.Xes, self.Yes)
+        x = int(((event.x) * self.toleranceX[0]) + self.toleranceX[1])
+        y = int(((event.y) * self.toleranceY[0]) + self.toleranceY[1])
+        if 0 <= x <= 255 and 0 <= y <= 255:
+            self.eventX.append(event.x)
+            self.eventY.append(event.y)
+            print("Event X: ", x, " Event Y: ", y)
+            self.Xes.append(x)
+            self.Yes.append(y)
+            self.Xes.sort()
+            self.Yes.sort()
+            self.fig_photo = self.draw_figure(self.Xes, self.Yes)
 
+    # Drag points
+    def down(self, event):
+        self.loc = 1
+        self.dragged = 0
+        event.widget.bind("<Motion>", self.motion)
+
+    def motion(self, event):
+        self.window.config(cursor="exchange")
+        cnv = event.widget
+        cnv.itemconfigure(tkinter.CURRENT, fill="blue")
+        x, y = cnv.canvasx(event.x), cnv.canvasy(event.y)
+        x_modified = int((x * self.toleranceX[0]) + self.toleranceX[1])
+        y_modified = int((y * self.toleranceY[0]) + self.toleranceY[1])
+        if 256 >= x_modified >= 0 and 256 >= y_modified >= 0:
+            print(x_modified, y_modified)
+            got = event.widget.coords(tkinter.CURRENT, x - 5, y - 5, x + 5, y + 5)
+
+    def leave(self, event):
+        self.loc = 0
+
+    def enter(self, event):
+        self.loc = 1
+        if self.dragged == event.time:
+            self.up(event)
+
+    def chkup(self, event):
+        event.widget.unbind("<Motion>")
+        self.window.config(cursor="")
+        self.target = event.widget.find_withtag(tkinter.CURRENT)
+        event.widget.itemconfigure(tkinter.CURRENT)
+        if self.loc:  # is button released in same widget as pressed?
+            self.up(event)
+        else:
+            self.dragged = event.time
+
+    def up(self, event):
+        event.widget.unbind("<Motion>")
+        if (self.target == event.widget.find_withtag(tkinter.CURRENT)):
+            print("Select %s" % event.widget)
+        else:
+            event.widget.itemconfigure(tkinter.CURRENT, fill="blue")
+            self.master.update()
 
 # # Create a canvas
 # w, h = 800, 500
