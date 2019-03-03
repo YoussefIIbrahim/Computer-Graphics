@@ -1,4 +1,5 @@
 import tkinter
+from tkinter import messagebox
 
 import PIL.Image
 import PIL.ImageTk
@@ -108,10 +109,12 @@ class App:
 
         # Position: convert from top-left anchor to center anchor
         self.bottom_canvas.create_image(fig_x + figure_w / 2, fig_y + figure_h / 2 + 10, image=photo)
+
         for i in range(len(self.eventX)):
             self.bottom_canvas.create_oval((self.eventX[i][0]) - 5, (self.eventX[i][1]) - 5, (self.eventX[i][0]) + 5,
                                            (self.eventX[i][1]) + 5,
                                            outline="#f11", fill="#1f1", width=2, tags="DnD")
+
         # Unfortunately, there's no accessor for the pointer to the native renderer
         tkagg.blit(photo, figure_canvas_agg.get_renderer()._renderer, colormode=2)
 
@@ -128,6 +131,7 @@ class App:
             self.eventX.append([event.x, event.y])
             # self.eventY.append(event.y)
             self.Xes.append([x, y])
+            self.Xes.sort()
             self.fig_photo = self.draw_figure([i[0] for i in self.Xes], [i[1] for i in self.Xes])
 
     # Drag points
@@ -205,11 +209,17 @@ class App:
         y_event = int((y_mod - self.toleranceY[1]) / self.toleranceY[0])
 
         # Handlling margin or error for Event Click by one or two steps
-        for i in range(-10, 10):
-            for k in range(-10, 10):
-                if x_event + i in self.eventX and y_event + k in self.eventY:
-                    x_event = x_event + i
-                    y_event = y_event + k
+        xev = [i[0] for i in self.eventX]
+        yev = [i[1] for i in self.eventX]
+        for i in range(len(self.eventX)):
+            for j in range(-10, 10):
+                if x_event + j in xev:
+                    for k in range(-10, 10):
+                        if y_event + k in yev and x_event + j in xev:
+                            print("EVENT: ", [x_event + j, y_event + k], self.eventX)
+                            if y_event + k == yev[xev.index(x_event + j)]:
+                                x_event = x_event + j
+                                y_event = y_event + k
 
         xes = [i[0] for i in self.Xes]
         yes = [i[1] for i in self.Xes]
@@ -217,7 +227,8 @@ class App:
             for j in range(-10, 10):
                 if x_remove + j in xes:
                     for k in range(-10, 10):
-                        if y_remove + k in yes:
+                        if y_remove + k in yes and x_remove + j in xes:
+                            print([x_remove + j, y_remove + k], self.Xes)
                             if y_remove + k == yes[xes.index(x_remove + j)]:
                                 x_remove = x_remove + j
                                 y_remove = y_remove + k
@@ -230,22 +241,22 @@ class App:
         #             y_remove = y_remove + k
 
         # Handling not finding the points
-        if [x_remove, y_remove] not in self.Xes or x_event not in self.eventX or y_event not in self.eventY:
-            print("Yes remove", y_event, self.eventY)
-            print("Yes remove", x_event, self.eventX)
+        if [x_remove, y_remove] not in self.Xes or [x_event, y_event] not in self.eventX:
+            print("Yes remove", [x_event, y_event], self.eventX)
             print("Yes remove", [x_remove, y_remove], self.Xes)
-            # messagebox.showinfo("Error", "Error retrieving this point from set of points. Please try again.")
+            messagebox.showinfo("Error", "Error retrieving this point from set of points. Please try again.")
         else:
 
             self.Xes.remove([x_remove, y_remove])
             # self.Yes.remove(y_remove)
-            self.eventX.remove(x_event)
-            self.eventY.remove(y_event)
+            self.eventX.remove([x_event, y_event])
+            # self.eventY.remove(y_event)
 
     def addXesYes(self, x_mod, y_mod):
 
-        self.eventX.append(int((x_mod - self.toleranceX[1]) / self.toleranceX[0]))
-        self.eventY.append(int((y_mod - self.toleranceY[1]) / self.toleranceY[0]))
+        self.eventX.append([int((x_mod - self.toleranceX[1]) / self.toleranceX[0]),
+                            int((y_mod - self.toleranceY[1]) / self.toleranceY[0])])
+        # self.eventY.append()
         self.Xes.append([x_mod, y_mod])
         # self.Yes.append(y_mod)
         self.Xes.sort()
