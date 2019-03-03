@@ -1,4 +1,5 @@
 import tkinter
+from tkinter import messagebox
 
 import PIL.Image
 import PIL.ImageTk
@@ -63,7 +64,7 @@ class App:
         # Create a canvas
         w, h = 255 * 3, 255 * 1.5
         self.bottom_canvas = tkinter.Canvas(self.bottomFrame, relief=tkinter.RIDGE, width=w, height=h)
-        self.bottom_canvas.bind("<Button-2>", self.reconstruct_line)
+        self.bottom_canvas.bind("<Double-Button-1>", self.reconstruct_line)
         self.bottom_canvas.configure(background='black')
         self.bottom_canvas.tag_bind("DnD", "<ButtonPress-1>", self.down)
         self.bottom_canvas.tag_bind("DnD", "<ButtonRelease-1>", self.chkup)
@@ -72,7 +73,7 @@ class App:
         self.bottom_canvas.pack()
 
         # Generate some example data
-        self.Xes = [0, 255]
+        self.Xes = [[0, 0], [255, 255]]
         self.Yes = [0, 255]
 
         # # Create the figure we desire to add to an existing canvas
@@ -83,11 +84,14 @@ class App:
         # # Keep this handle alive, or else figure will disappear
         # fig_x, fig_y = 5, 5
         # fig_photo = self.draw_figure(self.bottom_canvas, self.fig, loc=(fig_x, fig_y))
-        self.fig_photo = self.draw_figure(self.Xes, self.Yes)
+        xes = [i[0] for i in self.Xes]
+        yes = [i[1] for i in self.Xes]
+        self.fig_photo = self.draw_figure(xes, yes)
         self.window.mainloop()
 
     # Draw the graoh using matplotlib
     def draw_figure(self, x_values, y_values):
+        pypl.close()
         # Create the figure we desire to add to an existing canvas
         fig = pypl.figure(figsize=(2.55 * 3, 2.55 * 1.5), dpi=100)
         ax = fig.add_subplot(1, 1, 1)
@@ -122,21 +126,26 @@ class App:
     def reconstruct_line(self, event):
         x = int(((event.x) * self.toleranceX[0]) + self.toleranceX[1])
         y = int(((event.y) * self.toleranceY[0]) + self.toleranceY[1])
+
         if 0 <= x <= 255 and 0 <= y <= 255:
             self.eventX.append(event.x)
             self.eventY.append(event.y)
-            print("Event X: ", x, " Event Y: ", y)
-            self.Xes.append(x)
-            self.Yes.append(y)
-            self.Xes.sort()
-            self.Yes.sort()
-            self.fig_photo = self.draw_figure(self.Xes, self.Yes)
+            self.Xes.append([x, y])
+            self.fig_photo = self.draw_figure([i[0] for i in self.Xes], [i[1] for i in self.Xes])
 
     # Drag points
     def down(self, event):
         self.loc = 1
         self.dragged = 0
         event.widget.bind("<Motion>", self.motion)
+        x_mod = int((event.x * self.toleranceX[0]) + self.toleranceX[1])
+        y_mod = int((event.y * self.toleranceY[0]) + self.toleranceY[1])
+        print(self.Xes)
+        print(self.Yes)
+        print(self.eventX)
+        print(self.eventY)
+        self.RemoveXesYes(x_mod, y_mod)
+
 
     def motion(self, event):
         self.window.config(cursor="exchange")
@@ -145,9 +154,13 @@ class App:
         x, y = cnv.canvasx(event.x), cnv.canvasy(event.y)
         x_modified = int((x * self.toleranceX[0]) + self.toleranceX[1])
         y_modified = int((y * self.toleranceY[0]) + self.toleranceY[1])
-        if 256 >= x_modified >= 0 and 256 >= y_modified >= 0:
-            print(x_modified, y_modified)
-            got = event.widget.coords(tkinter.CURRENT, x - 5, y - 5, x + 5, y + 5)
+        if 255 >= x_modified >= 0 and 255 >= y_modified >= 0:
+            got = event.widget.coords(tkinter.CURRENT, x - 10, y - 10, x + 10, y + 10)
+            # self.Xes.append(x)
+            # self.Yes.append(y)
+            # self.Xes.sort()
+            # self.Yes.sort()
+            # self.fig_photo = self.draw_figure(self.Xes, self.Yes)
 
     def leave(self, event):
         self.loc = 0
@@ -162,8 +175,23 @@ class App:
         self.window.config(cursor="")
         self.target = event.widget.find_withtag(tkinter.CURRENT)
         event.widget.itemconfigure(tkinter.CURRENT)
+        x_mod = int((event.x * self.toleranceX[0]) + self.toleranceX[1])
+        y_mod = int((event.y * self.toleranceY[0]) + self.toleranceY[1])
+        if x_mod > 255:
+            x_mod = 255
+        if y_mod > 255:
+            y_mod = 255
+        if x_mod < 0:
+            x_mod = 0
+        if y_mod < 0:
+            y_mod = 0
+        self.addXesYes(x_mod, y_mod)
+        self.fig_photo = self.draw_figure([i[0] for i in self.Xes], [i[1] for i in self.Xes])
+
         if self.loc:  # is button released in same widget as pressed?
             self.up(event)
+
+
         else:
             self.dragged = event.time
 
@@ -173,35 +201,52 @@ class App:
             print("Select %s" % event.widget)
         else:
             event.widget.itemconfigure(tkinter.CURRENT, fill="blue")
-            self.master.update()
+            self.window.update()
 
-# # Create a canvas
-# w, h = 800, 500
-# window = tk.Tk()
-# window.title("A figure in a canvas")
-#
-# canvas = tk.Canvas(window, width=w, height=h)
-# canvas.bind("<Button-1>", reconstruct_line)
-# canvas.pack()
-#
-# # Generate some example data
-# X = [0, 255]
-# Y = X
-#
-# # Create the figure we desire to add to an existing canvas
-# fig = pypl.figure(figsize=(8, 5), dpi=100)
-# ax = fig.add_subplot(1, 1, 1)
-# ax.plot(X, Y)
-#
-# # Keep this handle alive, or else figure will disappear
-# fig_x, fig_y = 10, 10
-# fig_photo = draw_figure(canvas, fig, loc=(fig_x, fig_y))
-# fig_w, fig_h = fig_photo.width(), fig_photo.height()
-#
-# # Add more elements to the canvas and reconstruct graph
-#
-#
-#
-# # Let Tk take over
-# tk.mainloop()
+    def RemoveXesYes(self, x_mod, y_mod):
+        x_remove = x_mod
+        y_remove = y_mod
+        x_event = int((x_mod - self.toleranceX[1]) / self.toleranceX[0])
+        y_event = int((y_mod - self.toleranceY[1]) / self.toleranceY[0])
+
+        # Handlling margin or error for Event Click by one or two steps
+        for i in range(-10, 10):
+            for k in range(-10, 10):
+                if x_event + i in self.eventX and y_event + k in self.eventY:
+                    x_event = x_event + i
+                    y_event = y_event + k
+
+        for i in range(len(self.Xes)):
+            pass
+        # Handling margin error for saved points
+        for i in range(-10, 10):
+            for k in range(-10, 10):
+                if x_remove + i in self.Xes and y_remove + k in self.Yes:
+                    x_remove = x_remove + i
+                    y_remove = y_remove + k
+
+        # Handling not finding the points
+        if x_remove not in self.Xes or y_remove not in self.Yes or x_event not in self.eventX or y_event not in self.eventY:
+
+            messagebox.showinfo("Error", "Error retrieving this point from set of points. Please try again.")
+        else:
+            print("Yes remove", y_event, self.eventY)
+            print("Yes remove", x_event, self.eventX)
+            print("Yes remove", y_remove, self.Yes)
+            print("Yes remove", x_remove, self.Xes)
+            self.Xes.remove(x_remove)
+            self.Yes.remove(y_remove)
+            self.eventX.remove(x_event)
+            self.eventY.remove(y_event)
+
+    def addXesYes(self, x_mod, y_mod):
+
+        self.eventX.append(int((x_mod - self.toleranceX[1]) / self.toleranceX[0]))
+        self.eventY.append(int((y_mod - self.toleranceY[1]) / self.toleranceY[0]))
+        self.Xes.append(x_mod)
+        self.Yes.append(y_mod)
+
+        self.Xes.sort()
+        self.Yes.sort()
+
 App(tkinter.Tk(), "Tkinter and OpenCV")
