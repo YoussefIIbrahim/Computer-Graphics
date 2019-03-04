@@ -293,21 +293,8 @@ class SecondApp:
         found = np.argwhere(element == image)
         for i in range(len(found)):
             (image[found[i][0]][found[i][1]]) = replace
-            # image[[found[i][0], found[i][1]], :] = replace
 
-        # image = np.array(self.image)
-        # for i in range(len(image)):
-        #     for j in range(len(image[i])):
-        #         for l in range(len(image[i][j])):
-        #             for k in range(len(self.Xes)):
-        #                 # print(self.Xes[k][0])
-        #                 # print(image[i][j])
-        #                 if image[i][j][l] == self.Xes[k][0]:
-        #                     image[i][j][l] = self.Xes[k][1]
-        #
-        # self.image = image
         self.image = PIL.Image.fromarray(np.array(image, dtype=np.uint8))
-
         self.photo = PIL.ImageTk.PhotoImage(self.image)
         self.canvasOne.config(width=self.width, height=self.height)
         self.canvas.create_image(0, 0, image=self.photo, anchor=tkinter.NW)
