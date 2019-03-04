@@ -16,7 +16,7 @@ class SecondApp:
     def __init__(self, window, window_title, image_source, image_path="init.png"):
         self.window = window
         self.window.title(window_title)
-        self.image = image_source
+        self.image = None
         self.Xes = []
         self.eventX = []
         self.first_filter = 0
@@ -155,7 +155,7 @@ class SecondApp:
             # self.eventY.append(event.y)
             self.Xes.append([x, y])
             self.Xes.sort()
-            self.updateImage()
+            self.updateImage(x, y)
             self.fig_photo = self.draw_figure([i[0] for i in self.Xes], [i[1] for i in self.Xes])
 
     # Drag points
@@ -183,7 +183,6 @@ class SecondApp:
             # self.Xes.append(x)
             # self.Yes.append(y)
             self.Xes.sort()
-            self.updateImage()
             # self.fig_photo = self.draw_figure(self.Xes, self.Yes)
 
     def leave(self, event):
@@ -241,7 +240,7 @@ class SecondApp:
                 if x_event + j in xev:
                     for k in range(-10, 10):
                         if y_event + k in yev and x_event + j in xev:
-                            print("EVENT: ", [x_event + j, y_event + k], self.eventX)
+                            # print("EVENT: ", [x_event + j, y_event + k], self.eventX)
                             if y_event + k == yev[xev.index(x_event + j)]:
                                 x_event = x_event + j
                                 y_event = y_event + k
@@ -267,8 +266,8 @@ class SecondApp:
 
         # Handling not finding the points
         if [x_remove, y_remove] not in self.Xes or [x_event, y_event] not in self.eventX:
-            print("Yes remove", [x_event, y_event], self.eventX)
-            print("Yes remove", [x_remove, y_remove], self.Xes)
+            # print("Yes remove", [x_event, y_event], self.eventX)
+            # print("Yes remove", [x_remove, y_remove], self.Xes)
             messagebox.showinfo("Error", "Error retrieving this point from set of points. Please try again.")
         else:
 
@@ -285,27 +284,36 @@ class SecondApp:
         self.Xes.append([x_mod, y_mod])
         # self.Yes.append(y_mod)
         self.Xes.sort()
-        self.updateImage()
+        self.updateImage(x_mod, y_mod)
 
-    def updateImage(self):
+    def updateImage(self, element, replace):
 
+        print(element)
         image = np.array(self.image)
-        for i in range(len(image)):
-            for j in range(len(image[i])):
-                for l in range(len(image[i][j])):
-                    for k in range(len(self.Xes)):
-                        # print(self.Xes[k][0])
-                        # print(image[i][j])
-                        if image[i][j][l] == self.Xes[k][0]:
-                            image[i][j][l] = self.Xes[k][1]
+        found = np.argwhere(element == image)
+        for i in range(len(found)):
+            (image[found[i][0]][found[i][1]]) = replace
+            # image[[found[i][0], found[i][1]], :] = replace
 
-        imageO = PIL.Image.fromarray(np.array(image, dtype=np.uint8))
+        # image = np.array(self.image)
+        # for i in range(len(image)):
+        #     for j in range(len(image[i])):
+        #         for l in range(len(image[i][j])):
+        #             for k in range(len(self.Xes)):
+        #                 # print(self.Xes[k][0])
+        #                 # print(image[i][j])
+        #                 if image[i][j][l] == self.Xes[k][0]:
+        #                     image[i][j][l] = self.Xes[k][1]
+        #
+        # self.image = image
+        self.image = PIL.Image.fromarray(np.array(image, dtype=np.uint8))
 
-        self.photo = PIL.ImageTk.PhotoImage(imageO)
+        self.photo = PIL.ImageTk.PhotoImage(self.image)
         self.canvasOne.config(width=self.width, height=self.height)
         self.canvas.create_image(0, 0, image=self.photo, anchor=tkinter.NW)
         self.canvas.config(width=self.width, height=self.height)
 
         print("___________________________________")
 
-# SecondApp(tkinter.Toplevel(), "Tkinter")
+
+SecondApp(tkinter.Toplevel(), "Tkinter", "we")
