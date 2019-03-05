@@ -16,7 +16,7 @@ class SecondApp:
     def __init__(self, window, window_title, image_source, image_path="init.png"):
         self.window = window
         self.window.title(window_title)
-        self.image = None
+        self.image = image_source
         self.Xes = []
         self.eventX = []
         self.first_filter = 0
@@ -66,8 +66,8 @@ class SecondApp:
         w, h = 255 * 3, 255 * 1.5
         self.bottom_canvas = tkinter.Canvas(self.bottomFrame, relief=tkinter.RIDGE, width=w, height=h)
         self.bottom_canvas.bind("<Double-Button-1>", self.reconstruct_line)
-        self.bottom_canvas.bind("<Button-2>", self.pointer)
-        self.bottom_canvas.configure(background='black')
+        self.bottom_canvas.bind("<Button-2>", self.deletePoint)
+        self.bottom_canvas.configure(background='white')
         self.bottom_canvas.tag_bind("DnD", "<ButtonPress-1>", self.down)
         self.bottom_canvas.tag_bind("DnD", "<ButtonRelease-1>", self.chkup)
         self.bottom_canvas.tag_bind("DnD", "<Enter>", self.enter)
@@ -90,8 +90,35 @@ class SecondApp:
         self.fig_photo = self.draw_figure(xes, yes)
         self.window.mainloop()
 
-    def pointer(self, event):
-        print("Pointer ", event.x, event.y)
+    def deletePoint(self, event):
+        for i in range(-5, 6):
+            for j in range(-5, 6):
+                if [(event.x) + i, (event.y) + j] in self.eventX:
+                    self.eventX.remove([(event.x) + i, (event.y) + j])
+
+        x_remove = int((event.x * self.toleranceX[0]) + self.toleranceX[1])
+        y_remove = int((event.y * self.toleranceY[0]) + self.toleranceY[1])
+        xes = [i[0] for i in self.Xes]
+        yes = [i[1] for i in self.Xes]
+        for i in range(len(self.Xes)):
+            for j in range(-10, 10):
+                if x_remove + j in xes:
+                    for k in range(-10, 10):
+                        if y_remove + k in yes and x_remove + j in xes:
+                            print([x_remove + j, y_remove + k], self.Xes)
+                            if y_remove + k == yes[xes.index(x_remove + j)]:
+                                x_remove = x_remove + j
+                                y_remove = y_remove + k
+
+        # Handling not finding the points
+        if [x_remove, y_remove] not in self.Xes:
+            messagebox.showinfo("Error", "Error retrieving this point from set of points. Please try again.")
+        else:
+
+            self.Xes.remove([x_remove, y_remove])
+
+        self.fig_photo = self.draw_figure([i[0] for i in self.Xes], [i[1] for i in self.Xes])
+
     # Reset Image
     def reset_image(self):
         self.image = PIL.Image.open(self.path)
@@ -257,12 +284,6 @@ class SecondApp:
                                 x_remove = x_remove + j
                                 y_remove = y_remove + k
 
-        # Handling margin error for saved points
-        # for i in range(-10, 10):
-        #     for k in range(-10, 10):
-        #         if x_remove + i in self.Xes and y_remove + k in self.Yes:
-        #             x_remove = x_remove + i
-        #             y_remove = y_remove + k
 
         # Handling not finding the points
         if [x_remove, y_remove] not in self.Xes or [x_event, y_event] not in self.eventX:
@@ -302,5 +323,4 @@ class SecondApp:
 
         print("___________________________________")
 
-
-SecondApp(tkinter.Toplevel(), "Tkinter", "we")
+# SecondApp(tkinter.Toplevel(), "Tkinter", "we")
