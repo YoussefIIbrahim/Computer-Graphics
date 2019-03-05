@@ -17,6 +17,7 @@ class SecondApp:
         self.window = window
         self.window.title(window_title)
         self.image = image_source
+        self.path = image_path
         self.Xes = []
         self.eventX = []
         self.first_filter = 0

@@ -1,5 +1,5 @@
-from PIL import Image
 import numpy as np
+from PIL import Image
 
 
 class Filter:
@@ -44,8 +44,8 @@ def contrast_enhancement(image):
     return functional_filter(image, lambda x: np.clip(DEFAULT_CONTRAST * (x - 64), 0, 255))
 
 
-def gamma_correction(image):
-    return functional_filter(image, lambda x: (x / 255) ** DEFAULT_GAMMA * 255)
+def gamma_correction(image, gamma_factor):
+    return functional_filter(image, lambda x: (x / 255) ** float(gamma_factor) * 255)
 
 
 def convolution_filter(image, filter):

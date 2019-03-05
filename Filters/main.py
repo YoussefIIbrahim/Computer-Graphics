@@ -1,6 +1,6 @@
 import os
 import tkinter
-from tkinter import filedialog
+from tkinter import filedialog, messagebox
 
 import PIL.Image
 import PIL.ImageTk
@@ -59,39 +59,43 @@ class App:
 
         # Button for inversion
         self.btn_inversion = tkinter.Button(self.bottomFrame, text="Inversion", width=50, command= self.invert_image)
-        self.btn_inversion.grid(row=0, column=0)
+        self.btn_inversion.grid(row=4, column=0)
 
         # Button for brightness
         self.btn_bright = tkinter.Button(self.bottomFrame, text="Brightness Correction", width=50, command=self.brightness)
-        self.btn_bright.grid(row=0, column=1)
+        self.btn_bright.grid(row=4, column=1)
 
         # Button for contrast
         self.btn_contrast = tkinter.Button(self.bottomFrame, text="Contrast Enhancement", width=50, command=self.contrast)
-        self.btn_contrast.grid(row=0, column=2)
+        self.btn_contrast.grid(row=4, column=2)
 
         # Button for gamma
         self.btn_gamma = tkinter.Button(self.bottomFrame, text="Gamma Correction", width=50, command=self.gamma)
-        self.btn_gamma.grid(row=1, column=0)
+        self.btn_gamma.grid(row=2, column=0)
+        self.input = tkinter.Entry(self.bottomFrame, width=100)
+        self.input.grid(row=0, columnspan=3)
+
+
 
         # Button for blur
         self.btn_blur = tkinter.Button(self.bottomFrame, text="Blur 3x3", width=50, command=self.blur_image)
-        self.btn_blur.grid(row=1, column=1)
+        self.btn_blur.grid(row=2, column=1)
 
         # Gaussian
         self.btn_gaussian = tkinter.Button(self.bottomFrame, text="Gaussian Smoothing 3x3", width=50, command=self.gaussian_blur)
-        self.btn_gaussian.grid(row=1, column=2)
+        self.btn_gaussian.grid(row=2, column=2)
 
         # Sharpen
         self.btn_sharpen = tkinter.Button(self.bottomFrame, text="Sharpen 3x3", width=50, command=self.sharpen)
-        self.btn_sharpen.grid(row=2, column=0)
+        self.btn_sharpen.grid(row=3, column=0)
 
         # Edge Detection
         self.btn_edge_detection = tkinter.Button(self.bottomFrame, text="Edge Detection 3x3", width=50, command=self.edge_detection)
-        self.btn_edge_detection.grid(row=2, column=1)
+        self.btn_edge_detection.grid(row=3, column=1)
 
         # Emboss
         self.btn_emboss = tkinter.Button(self.bottomFrame, text="Emboss 3x3", width=50, command=self.emboss)
-        self.btn_emboss.grid(row=2, column=2)
+        self.btn_emboss.grid(row=3, column=2)
 
         self.root.mainloop()
 
@@ -144,9 +148,14 @@ class App:
 
     # Callback for the "Blur" button
     def gamma(self):
-        self.image = filters.gamma_correction(self.image)
-        self.photo = PIL.ImageTk.PhotoImage(self.image)
-        self.canvas.create_image(0, 0, image=self.photo, anchor=tkinter.NW)
+        try:
+            gamma_factor = filters.gamma_correction(self.image, self.input.get())
+        except ValueError:
+            messagebox.showinfo("Error", "Please enter a valid number")
+        else:
+            self.image = filters.gamma_correction(self.image, self.input.get())
+            self.photo = PIL.ImageTk.PhotoImage(self.image)
+            self.canvas.create_image(0, 0, image=self.photo, anchor=tkinter.NW)
 
     # Callback for the "Blur" button
     def gaussian_blur(self):
