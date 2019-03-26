@@ -1,13 +1,12 @@
 import os
 import tkinter
-from tkinter import filedialog, messagebox
+from tkinter import filedialog
 
 import PIL.Image
 import PIL.ImageTk
 import cv2
 
-from Filters import filters
-from Filters import graph_filters
+from ErrorDiffusion import filters
 
 
 class App:
@@ -16,13 +15,13 @@ class App:
         self.root.title(root_title)
         self.path = None
         self.image = None
+        self.var = None
         self.first_filter = 0
         menu = tkinter.Menu()
         self.root.config(menu=menu)
 
         file = tkinter.Menu(menu, tearoff=0)
         file.add_command(label='Open Image...', command=self.open_image)
-        file.add_command(label='Open Graph', command=self.open_graph)
         file.add_command(label='Reset', command=self.reset_image)
         menu.add_cascade(label="File", menu=file)
 
@@ -57,47 +56,39 @@ class App:
         self.bottomFrame = tkinter.Frame()
         self.bottomFrame.pack()
 
-        # Button for inversion
-        self.btn_inversion = tkinter.Button(self.bottomFrame, text="Inversion", width=50, command=self.invert_image)
-        self.btn_inversion.grid(row=4, column=0)
+        self.var = tkinter.IntVar()
+        self.var.set(2)
+        R1 = tkinter.Radiobutton(self.bottomFrame, text="M equals 2", variable=self.var, value=2)
+        R2 = tkinter.Radiobutton(self.bottomFrame, text="M equals 4", variable=self.var, value=4)
+        R3 = tkinter.Radiobutton(self.bottomFrame, text="M equals 8", variable=self.var, value=8)
+        R4 = tkinter.Radiobutton(self.bottomFrame, text="M equals 16", variable=self.var, value=16)
+        R1.grid(row=0, column=0)
+        R2.grid(row=0, column=1)
+        R3.grid(row=0, column=2)
+        R4.grid(row=0, column=3)
 
-        # Button for brightness
-        self.btn_bright = tkinter.Button(self.bottomFrame, text="Brightness Correction", width=50,
-                                         command=self.brightness)
-        self.btn_bright.grid(row=4, column=1)
+        # Button for floyd-steinberg
+        self.btn_inversion = tkinter.Button(self.bottomFrame, text="Floyd and Steinberg Filter", width=50,
+                                            command=self.steinberg)
+        self.btn_inversion.grid(row=1, column=0, columnspan=2)
 
-        # Button for contrast
-        self.btn_contrast = tkinter.Button(self.bottomFrame, text="Contrast Enhancement", width=50,
-                                           command=self.contrast)
-        self.btn_contrast.grid(row=4, column=2)
+        # Button for Burkes
+        self.btn_bright = tkinter.Button(self.bottomFrame, text="Burkes Filter", width=50,
+                                         command=self.burkes)
+        self.btn_bright.grid(row=1, column=2, columnspan=2)
 
-        # Button for gamma
-        self.btn_gamma = tkinter.Button(self.bottomFrame, text="Gamma Correction", width=50, command=self.gamma)
-        self.btn_gamma.grid(row=2, column=0)
-        self.input = tkinter.Entry(self.bottomFrame, width=100)
-        self.input.grid(row=0, columnspan=3)
+        # Button for Stucky
+        self.btn_contrast = tkinter.Button(self.bottomFrame, text="Stucky Filter", width=50,
+                                           command=self.stucky)
+        self.btn_contrast.grid(row=2, column=0, columnspan=2)
 
-        # Button for blur
-        self.btn_blur = tkinter.Button(self.bottomFrame, text="Blur 3x3", width=50, command=self.blur_image)
-        self.btn_blur.grid(row=2, column=1)
+        # Button for Sierra
+        self.btn_gamma = tkinter.Button(self.bottomFrame, text="Sierra Filter", width=50, command=self.sierra)
+        self.btn_gamma.grid(row=2, column=2, columnspan=2)
 
-        # Gaussian
-        self.btn_gaussian = tkinter.Button(self.bottomFrame, text="Gaussian Smoothing 3x3", width=50,
-                                           command=self.gaussian_blur)
-        self.btn_gaussian.grid(row=2, column=2)
-
-        # Sharpen
-        self.btn_sharpen = tkinter.Button(self.bottomFrame, text="Sharpen 3x3", width=50, command=self.sharpen)
-        self.btn_sharpen.grid(row=3, column=0)
-
-        # Edge Detection
-        self.btn_edge_detection = tkinter.Button(self.bottomFrame, text="Edge Detection 3x3", width=50,
-                                                 command=self.edge_detection)
-        self.btn_edge_detection.grid(row=3, column=1)
-
-        # Emboss
-        self.btn_emboss = tkinter.Button(self.bottomFrame, text="Emboss 3x3", width=50, command=self.emboss)
-        self.btn_emboss.grid(row=3, column=2)
+        # Button for Atkinson
+        self.btn_blur = tkinter.Button(self.bottomFrame, text="Atkinson Filter", width=50, command=self.atkinson)
+        self.btn_blur.grid(row=3, columnspan=4)
 
         self.root.mainloop()
 
@@ -106,10 +97,6 @@ class App:
         self.image = PIL.Image.open(self.path)
         self.canvas.create_image(0, 0, image=self.photoOne, anchor=tkinter.NW)
         # graph_filters.SecondApp(tkinter.Toplevel(), "Tkinter", self.path)
-
-    # Reset Image
-    def open_graph(self):
-        graph_filters.SecondApp(tkinter.Toplevel(), "Tkinter", self.image, self.path)
 
     # Open File
     def open_image(self):
@@ -124,62 +111,33 @@ class App:
         self.canvas.create_image(0, 0, image=self.photo, anchor=tkinter.NW)
         self.canvas.config(width=self.width, height=self.height)
 
-    # Callback for the "Blur" button
-    def invert_image(self):
-        self.image = filters.inversion(self.image)
+    # Callback for the steinberg button
+    def steinberg(self):
+        self.image = filters.useFilter(self.image, self.var.get(), 'floyd-steinberg')
         self.photo = PIL.ImageTk.PhotoImage(self.image)
         self.canvas.create_image(0, 0, image=self.photo, anchor=tkinter.NW)
 
-    # Callback for the "Blur" button
-    def brightness(self):
-        self.image = filters.brightness_correction(self.image)
+    # Callback for the burkes button
+    def burkes(self):
+        self.image = filters.useFilter(self.image, self.var.get(), 'burkes')
         self.photo = PIL.ImageTk.PhotoImage(self.image)
         self.canvas.create_image(0, 0, image=self.photo, anchor=tkinter.NW)
 
-    # Callback for the "Blur" button
-    def contrast(self):
-        self.image = filters.contrast_enhancement(self.image)
+    # Callback for the stucky button
+    def stucky(self):
+        self.image = filters.useFilter(self.image, self.var.get(), 'stucky')
         self.photo = PIL.ImageTk.PhotoImage(self.image)
         self.canvas.create_image(0, 0, image=self.photo, anchor=tkinter.NW)
 
-    # Callback for the "Blur" button
-    def blur_image(self):
-        self.image = filters.blur(self.image)
+    # Callback for the sierra button
+    def sierra(self):
+        self.image = filters.useFilter(self.image, self.var.get(), 'sierra')
         self.photo = PIL.ImageTk.PhotoImage(self.image)
         self.canvas.create_image(0, 0, image=self.photo, anchor=tkinter.NW)
 
-    # Callback for the "Blur" button
-    def gamma(self):
-        try:
-            gamma_factor = filters.gamma_correction(self.image, self.input.get())
-        except ValueError:
-            messagebox.showinfo("Error", "Please enter a valid number")
-        else:
-            self.image = filters.gamma_correction(self.image, self.input.get())
-            self.photo = PIL.ImageTk.PhotoImage(self.image)
-            self.canvas.create_image(0, 0, image=self.photo, anchor=tkinter.NW)
-
-    # Callback for the "Blur" button
-    def gaussian_blur(self):
-        self.image = filters.gaussian(self.image)
-        self.photo = PIL.ImageTk.PhotoImage(self.image)
-        self.canvas.create_image(0, 0, image=self.photo, anchor=tkinter.NW)
-
-    # Callback for the "Blur" button
-    def sharpen(self):
-        self.image = filters.sharpen(self.image)
-        self.photo = PIL.ImageTk.PhotoImage(self.image)
-        self.canvas.create_image(0, 0, image=self.photo, anchor=tkinter.NW)
-
-    # Callback for the "Blur" button
-    def edge_detection(self):
-        self.image = filters.edge(self.image)
-        self.photo = PIL.ImageTk.PhotoImage(self.image)
-        self.canvas.create_image(0, 0, image=self.photo, anchor=tkinter.NW)
-
-    # Callback for the "Blur" button
-    def emboss(self):
-        self.image = filters.emboss(self.image)
+    # Callback for the atkinson button
+    def atkinson(self):
+        self.image = filters.useFilter(self.image, self.var.get(), 'atkinson')
         self.photo = PIL.ImageTk.PhotoImage(self.image)
         self.canvas.create_image(0, 0, image=self.photo, anchor=tkinter.NW)
 

@@ -1,7 +1,14 @@
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+from __future__ import unicode_literals
+
 import numpy as np
 from PIL import Image
 
-DIFFUSION_MAPS = {
+from ErrorDiffusion import palette
+
+_DIFFUSION_MAPS = {
     'floyd-steinberg': (
         (1, 0, 7 / 16),
         (-1, 1, 3 / 16),
@@ -16,7 +23,7 @@ DIFFUSION_MAPS = {
         (1, 1, 1 / 8),
         (0, 2, 1 / 8),
     ),
-    'stucky': (
+    'stucki': (
         (1, 0, 8 / 42),
         (2, 0, 4 / 42),
         (-2, 1, 2 / 42),
@@ -39,7 +46,7 @@ DIFFUSION_MAPS = {
         (1, 1, 4 / 32),
         (2, 1, 2 / 32),
     ),
-    'sierra': (
+    'sierra3': (
         (1, 0, 5 / 32),
         (2, 0, 3 / 32),
         (-2, 1, 2 / 32),
@@ -54,37 +61,27 @@ DIFFUSION_MAPS = {
 }
 
 
-def grayscale(im):
-    image = np.array(im)
-    new_image = np.zeros((len(image), len(image[0])), dtype=np.uint8)
-    for i in range(len(image)):
-        for j in range(len(image[i])):
-            red = image[i][j][0]
-            green = image[i][j][1]
-            blue = image[i][j][2]
-            new_image[i][j] = red * 0.3 + green * 0.59 + blue * 0.11
-
-    return Image.fromarray((np.array(new_image, 'uint8')))
-
-
-def useFilter(im, m, method='floyd-steinberg', t=0.5):
-    image = grayscale(im)
-    diff_map = DIFFUSION_MAPS.get(method.lower())
+def error_diffusion_dithering(image, method='floyd-steinberg',
+                              order=8):
     ni = np.array(image, 'float')
-    b = np.zeros((len(ni), len(ni[0])), dtype=np.uint8)
-    diff = 255 / (m - 1)
+
+    diff_map = _DIFFUSION_MAPS.get(method.lower())
 
     for y in range(ni.shape[0]):
         for x in range(ni.shape[1]):
-
-            c = ni[y][x]
-            b[y][x] = int(np.floor((c + t * diff) / diff) * diff)
-            qerror = ni[y][x] - b[y][x]
-
-            ni[y, x] = b[y][x]
-
+            old_pixel = ni[y, x]
+            old_pixel[old_pixel < 0.0] = 0.0
+            old_pixel[old_pixel > 255.0] = 255.0
+            new_pixel = palette.pixel_closest_colour(old_pixel, order)
+            quantization_error = old_pixel - new_pixel
+            ni[y, x] = new_pixel
             for dx, dy, diffusion_coefficient in diff_map:
                 xn, yn = x + dx, y + dy
                 if (0 <= xn < ni.shape[1]) and (0 <= yn < ni.shape[0]):
-                    ni[yn, xn] += qerror * diffusion_coefficient
-    return Image.fromarray(np.array(ni, 'uint8'))
+                    ni[yn, xn] += quantization_error * diffusion_coefficient
+    return palette.create_PIL_png_from_rgb_array(np.array(ni, 'uint8'))
+
+
+img = Image.open('/Users/youssefiibrahim/PycharmProjects/Computer-Graphics/Filters/eye.jpg')
+palette = palette.Palette.create_by_median_cut(img)
+(error_diffusion_dithering(img, palette)).show()
