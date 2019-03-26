@@ -6,7 +6,8 @@ import PIL.Image
 import PIL.ImageTk
 import cv2
 
-from ErrorDiffusion import filters
+from ErrorDiffusionUniformQuantization import filters
+from ErrorDiffusionUniformQuantization import uniformQunatization
 
 
 class App:
@@ -90,6 +91,15 @@ class App:
         self.btn_blur = tkinter.Button(self.bottomFrame, text="Atkinson Filter", width=50, command=self.atkinson)
         self.btn_blur.grid(row=3, columnspan=4)
 
+        # Slider for Num Colors
+        self.slider = tkinter.Scale(self.bottomFrame, from_=2, to=256, length=self.width, orient=tkinter.HORIZONTAL)
+        self.slider.grid(row=4, columnspan=4)
+
+        # Button for UniformQuantization
+        self.btn_quant = tkinter.Button(self.bottomFrame, text="Uniform Quantization", width=50,
+                                        command=self.uniformQuantization)
+        self.btn_quant.grid(row=5, columnspan=4)
+
         self.root.mainloop()
 
     # Reset Image
@@ -138,6 +148,12 @@ class App:
     # Callback for the atkinson button
     def atkinson(self):
         self.image = filters.useFilter(self.image, self.var.get(), 'atkinson')
+        self.photo = PIL.ImageTk.PhotoImage(self.image)
+        self.canvas.create_image(0, 0, image=self.photo, anchor=tkinter.NW)
+
+    # Callback for the quant button
+    def uniformQuantization(self):
+        self.image = uniformQunatization.quantize(self.image, self.slider.get())
         self.photo = PIL.ImageTk.PhotoImage(self.image)
         self.canvas.create_image(0, 0, image=self.photo, anchor=tkinter.NW)
 
