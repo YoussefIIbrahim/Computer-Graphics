@@ -19,3 +19,16 @@ Requirments:
       * sharpen
       * edge detection
       * emboss
+      
+# Second Assignment - Error Diffusion and Uniform Quantization
+
+Application with GUI for Error Diffusion and Uniform Quantization.
+Requirments:  
+  1. Implement 5 different error diffusion filters:
+    * Floyd-Steinberg
+    * Burkes Filter
+    * Stucky Filter
+    * Sierra Filter
+    * Atkinson Filter
+  2. Apply those filter with param M (number of grey levels - 2, 4, 8, 16)
+  3. Apply uniform color quantization with param levels (number of colors in each channel or durection of cube) 
