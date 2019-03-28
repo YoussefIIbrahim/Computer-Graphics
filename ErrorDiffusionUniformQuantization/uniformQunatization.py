@@ -1,7 +1,5 @@
 """
-Quantization - Uniform gray-level and improved grey-scale (IGS)
-Homework 1 for IMGS 361
-Created by Jesse Jurman
+Quantization - Uniform gray-level
 """
 
 import numpy as np
