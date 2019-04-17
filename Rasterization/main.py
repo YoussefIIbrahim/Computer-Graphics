@@ -47,6 +47,7 @@ class App:
             self.draw_pixel(pixel[0], pixel[1])
 
     def draw_line(self, x1, y1, x2, y2):
+
         if x2 < x1: x1, x2 = x2, x1
         if y2 < y1: y1, y2 = y2, y1
         pixels = []
@@ -66,7 +67,6 @@ class App:
             else:
                 pixels.append((round(x), i))
                 x += m
-        print(pixels)
         self.draw_pixels(pixels)
 
     def draw_circle(self, x, y, r):
@@ -107,6 +107,8 @@ class App:
         ]
 
     def drawThickLine(self, x1, y1, x2, y2, thick):
+        if x2 < x1: x1, x2 = x2, x1
+        if y2 < y1: y1, y2 = y2, y1
         pixels = []
         if y1 == 0: y1 = 1
         if y2 == 0: y2 = 1
