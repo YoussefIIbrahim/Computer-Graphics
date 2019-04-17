@@ -92,7 +92,7 @@ class App:
         self.btn_blur.grid(row=3, columnspan=4)
 
         # Slider for Num Colors
-        self.slider = tkinter.Scale(self.bottomFrame, from_=2, to=256, length=self.width, orient=tkinter.HORIZONTAL)
+        self.slider = tkinter.Scale(self.bottomFrame, from_=2, to=5, length=self.width, orient=tkinter.HORIZONTAL)
         self.slider.grid(row=4, columnspan=4)
 
         # Button for UniformQuantization
